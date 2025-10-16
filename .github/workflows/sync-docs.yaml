@@ -1,0 +1,52 @@
+name: Upload docs.md to Confluence
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  upload-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install curl & jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get current Confluence page version
+        id: get_version
+        run: |
+          response=$(curl -s -u "${{ secrets.CONFLUENCE_EMAIL }}:${{ secrets.CONFLUENCE_API_TOKEN }}" \
+            "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}?expand=version")
+          version=$(echo "$response" | jq '.version.number')
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Convert docs.md to HTML
+        id: convert
+        run: |
+          sudo apt-get install -y pandoc
+          pandoc docs.md -f markdown -t html -s -o docs.html
+
+      - name: Upload to Confluence
+        run: |
+          new_version=$(( ${{ steps.get_version.outputs.version }} + 1 ))
+          html_content=$(cat docs.html | jq -Rs .)
+
+          curl -s -u "${{ secrets.CONFLUENCE_EMAIL }}:${{ secrets.CONFLUENCE_API_TOKEN }}" \
+            -X PUT \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"id\": \"${{ secrets.CONFLUENCE_PAGE_ID }}\",
+              \"type\": \"page\",
+              \"title\": \"Documentação do Gateway\",
+              \"space\": { \"key\": \"~7120202607eb0c06084fb5ba0f6ca75297a0a5\" },
+              \"version\": { \"number\": $new_version },
+              \"body\": {
+                \"storage\": {
+                  \"value\": $html_content,
+                  \"representation\": \"storage\"
+                }
+              }
+            }" \
+            "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}"

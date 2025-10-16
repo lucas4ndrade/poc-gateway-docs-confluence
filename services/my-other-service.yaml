@@ -1,0 +1,22 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: my-other-service
+    url: http://mockbin.org/request
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 10000
+    tags:
+      - example
+      - mock
+    routes:
+      - name: my-other-service-route
+        paths:
+          - /my-other-service
+        methods:
+          - GET
+          - POST
+        strip_path: true
+        preserve_host: false
