@@ -2,6 +2,6 @@
 
 | Nome do Serviço  | Link Para a Documentação      |
 |------------------|-------------------------------|
-| my-service       | https://exemplo.com/servico-a |
-| my-other-service | https://exemplo.com/servico-b |
-| baas-core        | https://exemplo.com/servico-c |
+| my-service       | https://google.com            |
+| my-other-service | https://google.com            |
+| baas-core        | https://google.com            |
