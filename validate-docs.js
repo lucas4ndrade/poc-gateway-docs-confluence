@@ -15,44 +15,56 @@ const tableRows = docsContent.split("\n").filter(line => /^\|/.test(line));
 
 // Extrai pares (nome, link)
 const entries = tableRows
-  .map(line => line.split("|").map(s => s.trim()))
-  .filter(cols => cols.length >= 3)
-  .map(cols => ({ name: cols[1], link: cols[2] }));
+    .map(line => line.split("|").map(s => s.trim()))
+    .filter(cols =>
+        cols.length >= 3 &&
+        !cols[1].toLowerCase().includes("nome") &&
+        !cols[1].startsWith("---") &&
+        cols[1] && cols[2]
+    )
+    .map(cols => ({ name: cols[1], link: cols[2] }));
 
 let hasError = false;
 
 // 1️⃣ Checar se cada serviço tem entrada
 for (const service of serviceNames) {
-  if (!entries.some(e => e.name === service)) {
-    console.error(`❌ Serviço "${service}" não tem entrada no docs.md`);
-    hasError = true;
-  }
+    if (!entries.some(e => e.name === service)) {
+        console.error(`❌ Serviço "${service}" não tem entrada no docs.md`);
+        hasError = true;
+    }
 }
 
 // 2️⃣ Checar se links são válidos (HTTP 200)
 async function checkLink(link) {
-  return new Promise(resolve => {
-    https
-      .get(link, res => resolve(res.statusCode))
-      .on("error", () => resolve(null));
-  });
+    try {
+        new URL(link); // lança se for inválida
+    } catch {
+        console.error(`❌ Link ${link} inválido`);
+        return null;
+    }
+
+    return new Promise(resolve => {
+        https
+            .get(link, res => resolve(res.statusCode))
+            .on("error", () => resolve(null));
+    });
 }
 
 (async () => {
-  for (const { name, link } of entries) {
-    const status = await checkLink(link);
-    if (status !== 200) {
-      console.error(`❌ Link inválido para "${name}": ${link} (status: ${status})`);
-      hasError = true;
-    } else {
-      console.log(`✅ ${name} → ${link}`);
+    for (const { name, link } of entries) {
+        const status = await checkLink(link);
+        if (status !== 200) {
+            console.error(`❌ Link inválido para "${name}": ${link} (status: ${status})`);
+            hasError = true;
+        } else {
+            console.log(`✅ ${name} → ${link}`);
+        }
     }
-  }
 
-  if (hasError) {
-    console.error("❌ Validação falhou.");
-    process.exit(1);
-  } else {
-    console.log("✅ Tudo certo com as documentações!");
-  }
+    if (hasError) {
+        console.error("❌ Validação falhou.");
+        process.exit(1);
+    } else {
+        console.log("✅ Tudo certo com as documentações!");
+    }
 })();
